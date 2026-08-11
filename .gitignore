@@ -1,0 +1,3 @@
+/target
+/testing_ground/alpine/*
+!/testing_ground/alpine/alpine_test.sh
