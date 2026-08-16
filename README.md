@@ -1,34 +1,28 @@
 Welcome to Octo-init!
 
-Octo-init is an extremely minimalist init system inspired by rust.
-The main unique traits of it being:
-  written in 100% rust,
-  no std library,
-  utilizes raw syscals rather than using /bin/bash or other shells.
+Octo-init is a minimalist init system which:
+  is written in pure no_std rust.
+  is really small (under 20Kb)
+  is extremely fast.
 
-the syntax is simple.
-i got the idea from systemd.
-so first, there a couple of directories.
+Now about actual usability.
 
-i have to change the arc a bit but that doesnt matter.
+It creates a folder in /etc/ called "octo-init".
+The folder contains "entries" and "enabled".
 
-there are 5 types you can use.
-DAEMON, TTY, ONESHOT, WAITFOR, WAITFORD.
+"enabled" contains symlinks to the entries
 
-DAEMON -> The process is always up. if it crashes it restarts.
-ONESHOT -> The process just starts, the init doesnt keep track of it and doesnt revive it.
-TTY -> specifically for shells (/bin/sh or /bin/bash).
-WAITFOR -> halts the init spawning loop until the waitfor task is finished.
-WAITFORD -> is the same as waitfor. also halts BUT loops. (P.S. HALTS only when spawning the first time. After that it works like a daemon.)
+If you want to add a startup process you need to add a file to entries (can be anything)
+BUT! the files are sorted by the first 3 characters from highest to lowest (so 999 will be execute before 001.).
+(Also it support all utf8 so A-Z, a-z, 0-9...)
 
-If you looked at the code you can see that its neatly separated into stages.
-each stage does its own job.
+the syntax for an entry is simple.
 
-stage 1 -> Mounting.
-stage 2 -> Spawning child procs, creating a list.
-stage 3 -> Reaping and reviving cycle.
-stage 4 -> Shutdown.
+PATH /your/path (Has to be an absolute path.) (Path to the executable.)
+TYPE SOME_TYPE (DAEMON, WAITFOR, WAITFORD(broken), ONESHOT)
+ARG your_arg (Just put an arg)
+ENV YOUR=env (Same as arg but env.)
 
-Its a chain reaction. in order for stage x to execute the previous one has to die.
+It uses syscalls so its really fast and uh,
 
-for now the init is only working with x86_64(support for aarch and risc-v will be done in the future.)
+thats it!
