@@ -24,12 +24,13 @@ pub extern "C" fn _start() -> ! {
 
 #[unsafe(no_mangle)]
 pub extern "C" fn octo_main() -> ! {
-    stage1();
+    let ent = stage1();
 
-    let mut val = stage2();
-
+    let mut val = stage2(&ent);
+    let _ = ent;
     let int = stage3(&mut val);
-
+    let _ = val;
+    //Da simplest way brada.
     stage4(int);
 }
 
@@ -39,17 +40,25 @@ fn panic(_info: &PanicInfo) -> ! {
 }
 
 //Due to compiler issues had to add this:
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn memcmp(s1: *const u8, s2: *const u8, n: usize) -> i32 {
+    for i in 0..n {
+        let a = unsafe { *s1.add(i) };
+        let b = unsafe { *s2.add(i) };
+        if a != b {
+            return (a as i32) - (b as i32);
+        }
+    }
+    0
+}
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn memset(s: *mut u8, c: i32, n: usize) -> *mut u8 {
-    let cur = s;
-    let count = n;
-
     unsafe {
         core::arch::asm!(
             "rep stosb",
-            inout("rdi") cur => _,
-            inout("rcx") count => _,
+            inout("rdi") s => _,
+            inout("rcx") n => _,
             in("al") c as u8,
             options(nostack, preserves_flags)
         )
@@ -68,20 +77,14 @@ pub unsafe extern "C" fn memcpy(dest: *mut u8, src: *const u8, n: usize) -> *mut
             inout("rsi") src => _,
             inout("rcx") n => _,
             options(nostack, preserves_flags)
-        )
-    };
+        );
+    }
+
     dest
 }
 
 //This things seems to not work
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn bcmp(s1: *const u8, s2: *const u8, n: usize) -> i32 {
-    let mut i = 0;
-    while i < n {
-        if unsafe { *s1.add(i) } != unsafe { *s2.add(i) } {
-            return 1;
-        }
-        i += 1;
-    }
-    0
+    unsafe { memcmp(s1, s2, n) }
 }

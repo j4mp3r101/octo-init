@@ -5,15 +5,12 @@ The main unique traits of it being:
   written in 100% rust,
   no std library,
   utilizes raw syscals rather than using /bin/bash or other shells.
-  uses a small, simple config file rather than a folder.
 
-I mean all of the claims are pretty simple except the last one.
-the "config file" was a decision made by me as its much easier to parse quickly.
+the syntax is simple.
+i got the idea from systemd.
+so first, there a couple of directories.
 
-The syntax is quite simple.
-To add an entry you just have to write:
-TYPE PATH\n
-(\n is just means new line.)
+i have to change the arc a bit but that doesnt matter.
 
 there are 5 types you can use.
 DAEMON, TTY, ONESHOT, WAITFOR, WAITFORD.

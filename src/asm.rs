@@ -2,8 +2,29 @@
 
 pub mod stage1 {
     use core::arch;
+
+    use crate::asm::debug::print;
     const MOUNT: isize = 0xa5;
     const MKDIR: isize = 0x53;
+    const SYMLINKAT: isize = 0x10a;
+
+    #[inline(always)]
+    pub unsafe fn symlinkat(path_to_file: *const u8, fd: isize, path_for_link: *const u8) -> isize {
+        let mut res: isize = SYMLINKAT;
+        unsafe {
+            arch::asm!(
+                "syscall",
+                inout("rax") res,
+                in("rdi") path_to_file,
+                in("rsi") fd,
+                in("rdx") path_for_link,
+                lateout("rcx") _,
+                lateout("r11") _,
+                options(nostack)
+            )
+        }
+        res
+    }
 
     #[inline(always)]
     pub unsafe fn mkdir(path: *const u8, mode: u32) -> isize {
@@ -69,6 +90,48 @@ pub mod stage2 {
     const SETSID: isize = 0x70;
     const DUP2: isize = 0x21;
     const IOCTL: isize = 0x10;
+    const GETDENTS64: isize = 0xd9;
+    const OPENAT: isize = 0x101;
+
+    #[inline(always)]
+    pub unsafe fn openat(dfd: isize, name: *const u8, flags: usize, mode: usize) -> isize {
+        let mut res = OPENAT;
+
+        unsafe {
+            arch::asm!(
+                "syscall",
+                inout("rax") res,
+                in("rdi") dfd,
+                in("rsi") name,
+                in("rdx") flags,
+                in("r10") mode,
+                lateout("rcx") _,
+                lateout("r11") _,
+                options(nostack)
+            )
+        }
+
+        res
+    }
+
+    #[inline(always)]
+    pub unsafe fn getdents64(fd: isize, dirp: *mut u8, count: usize) -> isize {
+        let mut res: isize = GETDENTS64;
+
+        unsafe {
+            arch::asm!(
+                "syscall",
+                inout("rax") res,
+                in("rdi") fd,
+                in("rsi") dirp,
+                in("rdx") count,
+                options(nostack),
+                clobber_abi("system")
+            )
+        };
+
+        res
+    }
 
     #[inline(always)]
     pub unsafe fn ioctl(fd: isize, cmd: isize, long_arg: isize) -> isize {
@@ -229,6 +292,8 @@ pub mod stage2 {
 pub mod stage3 {
     use core::arch;
 
+    use crate::asm::prelude::VOID_PTR;
+
     #[repr(C)]
     pub struct Timespec {
         pub tv_sec: i64,
@@ -245,6 +310,26 @@ pub mod stage3 {
     const NANOSLEEP: isize = 0x23;
     const RTSIGPENDING: isize = 0x7f;
     const SIGPROCMASK: isize = 0x0e;
+    const RT_SIGTIMEDWAIT: isize = 0x80;
+
+    #[inline(always)]
+    pub unsafe fn rt_sigtimedwait(mask: u64) -> isize {
+        let mut res: isize = RT_SIGTIMEDWAIT;
+        unsafe {
+            arch::asm!(
+                "syscall",
+                inout("rax") res,
+                in("rdi") &mask as *const u64,
+                in("rsi") VOID_PTR,
+                in("rdx") 0_u64,
+                in("r10") 8_u64,
+                options(nostack),
+                clobber_abi("system")
+            )
+        };
+
+        res
+    }
 
     #[inline(always)]
     pub unsafe fn sigprocmask(mask: u64) {

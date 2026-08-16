@@ -4,4 +4,6 @@ rustflags = [
   "-C", "target-feature=+crt-static", 
   "-C", "link-arg=-static",
   "-C", "target-feature=-avx,-avx2,+sse,+sse2",
+  "-C", "link-arg=-no-pie",
+  "-C", "relocation-model=static",
 ]
