@@ -6,8 +6,11 @@ use crate::parser::RAW_BUF_SIZE_GET;
 
 const GENERAL_DIR: &[u8; 15] = b"/etc/octo-init\0";
 
-const ENTRY_DIR: &[u8; 23] = b"/etc/octo-init/entries\0";
-pub const ENABLED_DIR: &[u8; 23] = b"/etc/octo-init/enabled\0";
+pub const ENTRY_DIR: &[u8; 23] = b"/etc/octo-init/entries\0";
+pub const ENABLED_DIR: &[u8; 23] = b"/run/octo-init/enabled\0";
+const RUNGEN_DIR: &[u8] = b"/run/octo-init\0";
+
+pub const COMMUNICATION_FILE: &[u8] = b"/run/octo-init/init_cmd\0";
 
 const PROC: &[u8; 5] = b"proc\0";
 const SYSFS: &[u8; 6] = b"sysfs\0";
@@ -73,7 +76,18 @@ pub fn stage1() -> [u32; 256] {
 
         mkdir(ENTRY_DIR.as_ptr(), 0o755);
 
+        mkdir(RUNGEN_DIR.as_ptr(), 0o755);
+
         mkdir(ENABLED_DIR.as_ptr(), 0o755);
+
+        let fd = openat(
+            -100,
+            COMMUNICATION_FILE.as_ptr(),
+            1usize | 64usize | 512usize,
+            0o644,
+        );
+
+        close(fd);
     }
     //So this is the amount of total ids which CAN be stored. (in ram so that i dont have to get em later.)
     let mut ids = [0u32; 256];

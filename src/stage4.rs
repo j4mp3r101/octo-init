@@ -38,6 +38,6 @@ pub fn stage4(int: u64) -> ! {
 
         print("Aand shutdown");
 
-        sys_poweroff(int);
+        poweroff(int);
     }
 }

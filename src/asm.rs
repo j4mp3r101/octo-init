@@ -1,12 +1,277 @@
 //Here lies assembly code. NEATLY separated.//
 
+//Also trying to incorporate modularity 0_0
+
+pub mod easyc {
+    use core::arch::asm;
+
+    const OPENAT: isize = 0x101;
+    const CLOSE: isize = 0x03;
+    const READ: isize = 0x00;
+
+    #[inline(always)]
+    pub unsafe fn openat(dfd: i32, name: *const u8, flags: usize, mode: usize) -> isize {
+        let res;
+
+        unsafe {
+            asm!(
+                "syscall",
+                inout("rax") OPENAT => res,
+                in("rdi") dfd,
+                in("rsi") name,
+                in("rdx") flags,
+                in("r10") mode,
+                lateout("rcx") _,
+                lateout("r11") _,
+                options(nostack)
+            )
+        }
+
+        res
+    }
+}
+
+pub mod proc_hand {
+    use core::arch::asm;
+
+    const OPENAT: isize = 0x101;
+    const RENAMEAT: isize = 0x108;
+    const UNLINKAT: isize = 0x107;
+
+    #[inline(always)]
+    pub unsafe fn unlinkat(dfd: i32, name: *const u8, flags: usize) -> isize {
+        let res;
+
+        unsafe {
+            asm!(
+                "syscall",
+                inout("rax") UNLINKAT => res,
+                in("rdi") dfd,
+                in("rsi") name,
+                in("rdx") flags,
+                lateout("rcx") _,
+                lateout("r11") _,
+                options(nostack)
+            )
+        }
+
+        res
+    }
+
+    #[inline(always)]
+    pub unsafe fn openat(dfd: i32, name: *const u8, flags: usize, mode: usize) -> isize {
+        let res;
+
+        unsafe {
+            asm!(
+                "syscall",
+                inout("rax") OPENAT => res,
+                in("rdi") dfd,
+                in("rsi") name,
+                in("rdx") flags,
+                in("r10") mode,
+                lateout("rcx") _,
+                lateout("r11") _,
+                options(nostack)
+            )
+        }
+
+        res
+    }
+
+    #[inline(always)]
+    pub unsafe fn renameat(
+        oldfd: i32,
+        old_name: *const u8,
+        newfd: i32,
+        new_name: *const u8,
+    ) -> isize {
+        let res;
+
+        unsafe {
+            asm!(
+                "syscall",
+                inout("rax") RENAMEAT => res,
+                in("rdi") oldfd,
+                in("rsi") old_name,
+                in("rdx") newfd,
+                in("r10") new_name,
+                lateout("rcx") _,
+                lateout("r11") _,
+                options(nostack)
+            )
+        }
+
+        res
+    }
+}
+
+pub mod signal_processing {
+    use core::arch::asm;
+
+    //syscalls
+    const EPOLL_WAIT: isize = 0xe8;
+    const EPOLL_CREATE1: isize = 0x126;
+    const EPOLL_CTL: isize = 0xe9;
+
+    const SIGNAL_FD4: isize = 0x121;
+
+    #[inline(always)]
+    pub unsafe fn signalfd4(fd: isize, mask: *const u8, sizemask: usize, flags: i32) -> isize {
+        let mut res: isize = SIGNAL_FD4;
+        unsafe {
+            asm!(
+                "syscall",
+                inout("rax") res,
+                in("rdi") fd,
+                in("rsi") mask,
+                in("rdx") sizemask,
+                in("r10") flags,
+                lateout("rcx") _,
+                lateout("r11") _,
+                options(nostack)
+            );
+        }
+        res
+    }
+
+    //implementations
+    #[inline(always)]
+    pub unsafe fn epoll_create1(flags: i32) -> isize {
+        let mut res: isize = EPOLL_CREATE1;
+        unsafe {
+            asm!(
+                "syscall",
+                inout("rax") res,
+                in("rdi") flags,
+                lateout("rcx") _,
+                lateout("r11") _,
+                options(nostack)
+            );
+        }
+        res
+    }
+
+    #[inline(always)]
+    pub unsafe fn epoll_ctl(epfd: isize, op: i32, fd: isize, event: *const u8) -> isize {
+        let mut res: isize = EPOLL_CTL;
+        unsafe {
+            asm!(
+                "syscall",
+                inout("rax") res,
+                in("rdi") epfd,
+                in("rsi") op,
+                in("rdx") fd,
+                in("r10") event,
+                lateout("rcx") _,
+                lateout("r11") _,
+                options(nostack)
+            );
+        }
+        res
+    }
+
+    #[inline(always)]
+    pub unsafe fn epoll_wait(epfd: isize, events: *mut u8, maxevents: i32, timeout: i32) -> isize {
+        let mut res: isize = EPOLL_WAIT;
+        unsafe {
+            asm!(
+                "syscall",
+                inout("rax") res,
+                in("rdi") epfd,
+                in("rsi") events,
+                in("rdx") maxevents,
+                in("r10") timeout,
+                lateout("rcx") _,
+                lateout("r11") _,
+                options(nostack)
+            );
+        }
+        res
+    }
+}
+
 pub mod stage1 {
     use core::arch;
 
-    use crate::asm::debug::print;
     const MOUNT: isize = 0xa5;
     const MKDIR: isize = 0x53;
     const SYMLINKAT: isize = 0x10a;
+    const ACCEPT: isize = 43;
+    const SOCKET: isize = 41;
+    const BIND: isize = 49;
+    const LISTEN: isize = 50;
+
+    #[inline(always)]
+    pub unsafe fn accept(sockfd: isize, addr: *mut u8, addrlen: *mut u32) -> isize {
+        let mut res: isize = ACCEPT;
+        unsafe {
+            arch::asm!(
+                "syscall",
+                inout("rax") res,
+                in("rdi") sockfd,
+                in("rsi") addr,
+                in("rdx") addrlen,
+                lateout("rcx") _,
+                lateout("r11") _,
+                options(nostack)
+            );
+        }
+        res
+    }
+
+    #[inline(always)]
+    pub unsafe fn socket(domain: i32, socket_type: i32, protocol: i32) -> isize {
+        let mut res: isize = SOCKET;
+        unsafe {
+            arch::asm!(
+                "syscall",
+                inout("rax") res,
+                in("rdi") domain as isize,
+                in("rsi") socket_type as isize,
+                in("rdx") protocol as isize,
+                lateout("rcx") _,
+                lateout("r11") _,
+                options(nostack)
+            );
+        }
+        res
+    }
+
+    #[inline(always)]
+    pub unsafe fn bind(sockfd: isize, addr: *const u8, addrlen: u32) -> isize {
+        let mut res: isize = BIND;
+        unsafe {
+            arch::asm!(
+                "syscall",
+                inout("rax") res,
+                in("rdi") sockfd,
+                in("rsi") addr,
+                in("rdx") addrlen as isize,
+                lateout("rcx") _,
+                lateout("r11") _,
+                options(nostack)
+            );
+        }
+        res
+    }
+
+    #[inline(always)]
+    pub unsafe fn listen(sockfd: isize, backlog: i32) -> isize {
+        let mut res: isize = LISTEN;
+        unsafe {
+            arch::asm!(
+                "syscall",
+                inout("rax") res,
+                in("rdi") sockfd,
+                in("rsi") backlog as isize,
+                lateout("rcx") _,
+                lateout("r11") _,
+                options(nostack)
+            );
+        }
+        res
+    }
 
     #[inline(always)]
     pub unsafe fn symlinkat(path_to_file: *const u8, fd: isize, path_for_link: *const u8) -> isize {
@@ -415,7 +680,7 @@ pub mod stage4 {
     pub const KILL_PROC: isize = 9;
     pub const SIGTERM: isize = 15;
 
-    const SYS_KILL: isize = 0x3E;
+    const KILL: isize = 0x3E;
     const UMOUNT2: isize = 0xa6;
     const SYNC: isize = 0xa2;
 
@@ -468,7 +733,7 @@ pub mod stage4 {
 
     #[inline(always)]
     pub unsafe fn kill_all(sig: isize) {
-        let mut _res: isize = SYS_KILL;
+        let mut _res: isize = KILL;
         unsafe {
             core::arch::asm!(
                 "syscall",
@@ -483,7 +748,7 @@ pub mod stage4 {
     }
 
     #[inline(always)]
-    pub unsafe fn sys_poweroff(cmd: u64) -> ! {
+    pub unsafe fn poweroff(cmd: u64) -> ! {
         unsafe {
             arch::asm!(
                 "syscall",

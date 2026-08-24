@@ -2,6 +2,7 @@
 #![no_main]
 
 mod asm;
+mod better_proc_hand;
 mod parser;
 mod stage1;
 mod stage2;
@@ -26,11 +27,8 @@ pub extern "C" fn _start() -> ! {
 pub extern "C" fn octo_main() -> ! {
     let ent = stage1();
 
-    let mut val = stage2(&ent);
-    let _ = ent;
-    let int = stage3(&mut val);
-    let _ = val;
-    //Da simplest way brada.
+    let q = stage2(ent);
+    let int = stage3(q);
     stage4(int);
 }
 
@@ -87,4 +85,13 @@ pub unsafe extern "C" fn memcpy(dest: *mut u8, src: *const u8, n: usize) -> *mut
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn bcmp(s1: *const u8, s2: *const u8, n: usize) -> i32 {
     unsafe { memcmp(s1, s2, n) }
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn strlen(s: *const i8) -> usize {
+    let mut count = 0;
+    while unsafe { *s.add(count) != 0 } {
+        count += 1;
+    }
+    count
 }
