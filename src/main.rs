@@ -27,8 +27,10 @@ pub extern "C" fn _start() -> ! {
 pub extern "C" fn octo_main() -> ! {
     let ent = stage1();
 
-    let q = stage2(ent);
-    let int = stage3(q);
+    stage2(ent);
+
+    let int = stage3();
+
     stage4(int);
 }
 

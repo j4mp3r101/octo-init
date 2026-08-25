@@ -5,8 +5,7 @@ pub const MAX_TRIES: u8 = 3;
 use crate::{
     asm::{
         debug::{print, write},
-        proc_hand::openat,
-        stage2::{close, read},
+        fs::{close, openat, read},
     },
     parser::i32_to_null_terminated_bytes,
 };
@@ -14,12 +13,11 @@ use crate::{
 //So ill make a new "mod" so that its all good.
 
 pub mod beta {
-    use crate::asm::proc_hand::{openat, renameat, unlinkat};
-    use crate::asm::stage1::symlinkat;
+    use crate::asm::fs::{close, openat, read, renameat};
+    use crate::asm::symlinks::{symlinkat, unlinkat};
 
     use crate::parser::i32_to_null_terminated_bytes;
 
-    use crate::asm::stage2::{close, read};
     use crate::stage1::{ENABLED_DIR, ENTRY_DIR};
 
     //Now i need to "morph"
@@ -48,6 +46,7 @@ pub mod beta {
         let value = i32_to_null_terminated_bytes(pid);
         unsafe {
             renameat(fd as i32, word.as_ptr(), fd as i32, value.as_ptr());
+            close(fd);
         }
     }
 
@@ -59,7 +58,8 @@ pub mod beta {
 
         unsafe {
             renameat(fd as i32, value1.as_ptr(), fd as i32, value2.as_ptr());
-        }
+            close(fd)
+        };
     }
 
     pub fn read_proc(pid: i32, buf: &mut [u8]) -> isize {
@@ -69,14 +69,39 @@ pub mod beta {
 
         let cfd = unsafe { openat(fd as i32, value.as_ptr(), 0, 0) };
 
-        unsafe { read(cfd, buf) }
+        let v = unsafe { read(cfd, buf) };
+
+        unsafe {
+            close(cfd);
+            close(fd);
+        }
+
+        v
+    }
+
+    pub fn word_read_proc(word: &[u8], buf: &mut [u8]) -> isize {
+        let fd = unsafe { openat(-100, ENABLED_DIR.as_ptr(), 0, 0) };
+
+        let cfd = unsafe { openat(fd as i32, word.as_ptr(), 0, 0) };
+
+        let v = unsafe { read(cfd, buf) };
+
+        unsafe {
+            close(cfd);
+            close(fd);
+        }
+
+        v
     }
 
     pub fn kill_proc(pid: i32) {
         let fd = unsafe { openat(-100, ENABLED_DIR.as_ptr(), 0, 0) };
         let value = i32_to_null_terminated_bytes(pid);
 
-        unsafe { unlinkat(fd as i32, value.as_ptr(), 0) };
+        unsafe {
+            unlinkat(fd as i32, value.as_ptr(), 0);
+            close(fd)
+        };
     }
 }
 

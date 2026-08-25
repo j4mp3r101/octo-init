@@ -1,21 +1,32 @@
 use crate::asm::debug::print;
+use crate::asm::fs::{mount, sync, umount};
 use crate::asm::prelude::*;
-use crate::asm::stage1::mount;
-use crate::asm::stage3::nanosleep;
-use crate::asm::stage3::wait4;
-use crate::asm::stage4::*;
+use crate::asm::procs::kill;
+use crate::asm::procs::wait4;
+use crate::asm::signals::poweroff;
+use crate::asm::time::{Timespec, nanosleep};
 use crate::stage1::{SDEVTMPFS, SPROC, SPTS, SRUN, SSHM, SSYSFS, STMPFS};
+
+const LAZY_UMOUNT: isize = 0x02;
+
+const SIGTERM: isize = 15;
+const SIGKILL: isize = 9;
+
+const GRACE_TIME: Timespec = Timespec {
+    tv_sec: 1,
+    tv_nsec: 0,
+};
 
 pub fn stage4(int: u64) -> ! {
     print("So we decided to shutdown huh?");
     unsafe {
         print("Sending (merciful) kill signal");
-        kill_all(SIGTERM);
+        kill(SIGTERM, -1);
 
         nanosleep(&GRACE_TIME);
         while wait4(-1, 1) > 0 {}
         print("Sending (forceful) kill signal");
-        kill_all(KILL_PROC);
+        kill(SIGKILL, -1);
         while wait4(-1, 1) > 0 {}
 
         print("umount");
@@ -38,6 +49,6 @@ pub fn stage4(int: u64) -> ! {
 
         print("Aand shutdown");
 
-        poweroff(int);
+        poweroff(int)
     }
 }

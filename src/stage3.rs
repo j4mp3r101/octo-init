@@ -1,34 +1,39 @@
 use crate::asm::debug::*;
-use crate::asm::stage2::{close, openat, read};
-use crate::asm::stage3::*;
-use crate::asm::stage4::{POWER_OFF, REBOOT};
-use crate::better_proc_hand::{LilTask, MAX_TRIES, search_through};
-use crate::stage1::COMMUNICATION_FILE;
+use crate::better_proc_hand::beta::{alter_proc, kill_proc, read_proc, rephrase_entry};
+
+use crate::asm::fs::{close, openat, read};
+
+use crate::asm::procs::wait4;
+use crate::asm::signals::{rt_sigtimedwait, sigprocmask};
+
+pub const POWER_OFF: u64 = 0x4321fedc;
+pub const REBOOT: u64 = 0x01234567;
 
 use crate::parser::{RAW_BUF_SIZE_READ, full_parse};
+use crate::stage1::COMMUNICATION_FILE;
 
 const MASK_POWEROFF: u64 = 1 << (10 - 1);
 const MASK_REBOOT: u64 = 1 << (12 - 1);
 const MASK_SIGTERM: u64 = 1 << (15 - 1);
 const MASK_SIGCHLD: u64 = 1 << (17 - 1);
 
-//Custom signals
+const MASK_SPAWNPROC: u64 = 1 << (36 - 1);
 
-//const MASK_SPAWNPROC: u64 = 1 << (36 - 1);
+const BITMASK: u64 = MASK_POWEROFF | MASK_REBOOT | MASK_SIGTERM | MASK_SIGCHLD | MASK_SPAWNPROC;
 
-const BITMASK: u64 = MASK_POWEROFF | MASK_REBOOT | MASK_SIGTERM | MASK_SIGCHLD;
-
-fn match_task_stuff(list: &mut [LilTask], pos: usize, info: (i32, u8)) {
+fn match_task_stuff(reaped_pid: i32, info: (i32, u8)) {
     if info.0 > 0 {
         match info.1 {
-            1 => list[pos].pid = info.0,
-            3 => list[pos].pid = info.0,
-            _ => list[pos].pid = 0,
+            1 => alter_proc(reaped_pid, info.0),
+            3 => alter_proc(reaped_pid, info.0),
+            _ => kill_proc(reaped_pid),
         }
+    } else {
+        kill_proc(reaped_pid);
     }
 }
 
-pub fn stage3(mut tasks: [LilTask; 256]) -> u64 {
+pub fn stage3() -> u64 {
     print("Entered stage 3");
     let mut signal: isize;
 
@@ -37,38 +42,28 @@ pub fn stage3(mut tasks: [LilTask; 256]) -> u64 {
     };
     let mut contents = [0u8; RAW_BUF_SIZE_READ];
 
-    'a: loop {
+    loop {
         signal = unsafe { rt_sigtimedwait(BITMASK) };
         if signal > 0 {
             match signal {
                 17 => {
-                    print("So some procs died!");
+                    let mut retries: u8 = 64;
 
                     'ze: loop {
                         let pid = unsafe { wait4(-1, 1) };
 
                         if pid > 0 {
-                            let pos = search_through(&tasks, pid);
-                            match pos {
-                                Some(position) => {
-                                    tasks[position].get_info(&mut contents);
+                            if retries == 0 {
+                                kill_proc(pid);
+                            } else {
+                                let q = read_proc(pid, &mut contents);
+
+                                if q < 0 {
+                                } else {
                                     let info = full_parse(&mut contents);
-
-                                    if info.0 < 0 {
-                                        tasks[position].tries += 1;
-
-                                        if tasks[position].tries > MAX_TRIES {
-                                            tasks[position].pid = 0;
-                                        }
-                                    } else {
-                                        tasks[position].tries = 0;
-                                    }
-
-                                    match_task_stuff(&mut tasks, position, info);
+                                    match_task_stuff(pid, info);
                                 }
-                                None => {
-                                    continue 'a;
-                                }
+                                retries -= 1;
                             }
                         } else {
                             break 'ze;
@@ -76,31 +71,7 @@ pub fn stage3(mut tasks: [LilTask; 256]) -> u64 {
                     }
                 }
 
-                45 => {
-                    let fd = unsafe { openat(-100, COMMUNICATION_FILE.as_ptr(), 0, 0) };
-
-                    unsafe { read(fd, &mut contents) };
-
-                    let name = [contents[0], contents[1], contents[2], 0];
-
-                    //so now i have to find a free spot
-
-                    let free_spot = search_through(&tasks, 0);
-
-                    match free_spot {
-                        Some(value) => {
-                            tasks[value].link = name;
-                            tasks[value].get_info(&mut contents);
-
-                            let info = full_parse(&mut contents);
-
-                            match_task_stuff(&mut tasks, value, info);
-                        }
-                        None => {}
-                    };
-
-                    unsafe { close(fd) };
-                }
+                15 => return REBOOT,
 
                 12 => {
                     return REBOOT;
@@ -108,6 +79,47 @@ pub fn stage3(mut tasks: [LilTask; 256]) -> u64 {
 
                 10 => {
                     return POWER_OFF;
+                }
+
+                36 => {
+                    let file_fd = unsafe { openat(-100, COMMUNICATION_FILE.as_ptr(), 0, 0) };
+
+                    if file_fd < 0 {
+                        continue;
+                    }
+
+                    let read = unsafe { read(file_fd, &mut contents) };
+
+                    if read > 0 {
+                        let word = [contents[0], contents[1], contents[2], 0];
+
+                        //Now after we got the name its easy.
+                        //Ill just handle it the same way stage2 does.
+
+                        let info = full_parse(&mut contents);
+
+                        match info.1 {
+                            1 => {
+                                rephrase_entry(&word, info.0);
+                            }
+                            2 => unsafe {
+                                wait4(info.0, 0);
+                                kill_proc(info.0);
+                            },
+                            3 => {
+                                rephrase_entry(&word, info.0);
+
+                                unsafe {
+                                    wait4(info.0, 0);
+                                };
+                            }
+                            _ => {
+                                kill_proc(info.0);
+                            }
+                        };
+                    }
+
+                    unsafe { close(file_fd) };
                 }
 
                 _ => {}

@@ -1,14 +1,15 @@
 use crate::asm::debug::print;
 use crate::asm::prelude::*;
-use crate::asm::stage1::*;
-use crate::asm::stage2::{close, getdents64, openat};
+
+use crate::asm::fs::{close, getdents64, mkdir, mount, openat};
+use crate::asm::symlinks::symlinkat;
 use crate::parser::RAW_BUF_SIZE_GET;
 
 const GENERAL_DIR: &[u8; 15] = b"/etc/octo-init\0";
 
 pub const ENTRY_DIR: &[u8; 23] = b"/etc/octo-init/entries\0";
 pub const ENABLED_DIR: &[u8; 23] = b"/run/octo-init/enabled\0";
-const RUNGEN_DIR: &[u8] = b"/run/octo-init\0";
+pub const RUNGEN_DIR: &[u8] = b"/run/octo-init\0";
 
 pub const COMMUNICATION_FILE: &[u8] = b"/run/octo-init/init_cmd\0";
 
@@ -29,7 +30,7 @@ pub const SPTS: &[u8; 9] = b"/dev/pts\0";
 pub const SSHM: &[u8; 9] = b"/dev/shm\0";
 pub const SRUN: &[u8; 5] = b"/run\0";
 
-pub fn stage1() -> [u32; 256] {
+pub fn stage1() -> [[u8; 3]; 256] {
     print("Octo-init launching...");
 
     let proc = PROC.as_ptr();
@@ -55,7 +56,7 @@ pub fn stage1() -> [u32; 256] {
         print("Attempting to mount disk from R to RW");
         mount(VOID_PTR, b"/\0".as_ptr(), b"\0".as_ptr(), 32usize, VOID_PTR);
 
-        print("Attempting create tmpfs (IF IT PRINTS FAILURE IT DOESNT MEAN IT WONT WORK.)");
+        print("Attempting create tmpfs");
         mkdir(STMPFS.as_ptr(), 0o755);
         print("Attempting mount tmpfs");
         mount(tmpfs, STMPFS.as_ptr(), tmpfs, 0usize, VOID_PTR);
@@ -89,20 +90,20 @@ pub fn stage1() -> [u32; 256] {
 
         close(fd);
     }
-    //So this is the amount of total ids which CAN be stored. (in ram so that i dont have to get em later.)
-    let mut ids = [0u32; 256];
+
+    let mut ids = [[0u8; 3]; 256];
     let fd = unsafe { openat(-100, ENTRY_DIR.as_ptr(), 0, 0) };
     if fd > 0 {
         let mut buffer = [0u8; RAW_BUF_SIZE_GET];
-        //dents are the amount of bytes read now.
+
         let dents = unsafe { getdents64(fd, buffer.as_mut_ptr(), buffer.len()) };
         let mut i = 0;
 
         let mut entry_i = 0;
 
         if dents > 0 {
-            let mut le_path = [0u8; 128];
-            let mut be_path = [0u8; 128];
+            let mut le_path = [0u8; 30];
+            let mut be_path = [0u8; 60];
             let le_len = ENABLED_DIR.len();
             let be_len = ENTRY_DIR.len();
 
@@ -126,44 +127,41 @@ pub fn stage1() -> [u32; 256] {
                     break;
                 }
 
-                let big_ref = &mut ids;
-
                 let d_reclen = buffer[i + 16] as u16 + ((buffer[i + 17] as u16) << 8);
 
                 let word = &buffer[(i + 19)..(i + (d_reclen as usize))];
 
                 let name = [word[0], word[1], word[2], 0];
 
-                let value = ((word[0] as u32) << 16) | ((word[1] as u32) << 8) | (word[2] as u32);
-
-                //now its time to uh to check da word.
                 if !word.starts_with(b".") || !word.starts_with(b"..") {
                     for i in 0..word.len() {
                         be_path[i + be_len] = word[i];
                     }
-                    big_ref[entry_i] = value;
+                    be_path[word.len() + be_len] = 0;
+
+                    ids[entry_i] = [name[0], name[1], name[2]];
                     entry_i += 1;
-                }
 
-                for i in 0..3 {
-                    le_path[i + le_len] = name[i];
-                }
+                    for i in 0..4 {
+                        le_path[i + le_len] = name[i];
+                    }
 
-                let z = unsafe { symlinkat(be_path.as_ptr(), -100, le_path.as_ptr()) };
+                    let z = unsafe { symlinkat(be_path.as_ptr(), -100, le_path.as_ptr()) };
 
-                if z < 0 {
-                    print("File found symlink not so much.");
+                    if z < 0 {
+                        print("File found symlink not so much.");
+                    }
                 }
 
                 i += d_reclen as usize;
             }
         } else {
-            print("Either its empty or it failed to read it :/")
+            print("Either its empty or it failed to read it")
         }
 
         let _ = buffer;
     } else {
-        print("Failed to open a directory. WE`RE DOOMED!")
+        print("Failed to open the directory. death is inevitable")
     }
 
     unsafe { close(fd) };
