@@ -251,44 +251,7 @@ pub mod procs {
     const EXECVE: isize = 0x3b;
     const EXIT: isize = 0x3c;
     const SETSID: isize = 0x70;
-    const DUP2: isize = 0x21;
-    const IOCTL: isize = 0x10;
     const WAIT4: i32 = 0x3d;
-
-    #[inline(always)]
-    pub unsafe fn ioctl(fd: isize, cmd: isize, long_arg: isize) -> isize {
-        let mut res: isize = IOCTL;
-
-        unsafe {
-            asm!(
-                "syscall",
-                inout("rax") res,
-                in("rdi") fd,
-                in("rsi") cmd,
-                in("rdx") long_arg,
-                options(nostack),
-                clobber_abi("system")
-            )
-        };
-
-        res
-    }
-
-    #[inline(always)]
-    pub unsafe fn dup2(oldfd: isize, newfd: isize) {
-        let mut _res: isize = DUP2;
-
-        unsafe {
-            asm!(
-                "syscall",
-                inout("rax") _res,
-                in("rdi") oldfd,
-                in("rsi") newfd,
-                options(nostack),
-                clobber_abi("system")
-            )
-        };
-    }
 
     #[inline(always)]
     pub unsafe fn setsid() {
@@ -519,7 +482,7 @@ pub mod debug {
     #[inline(always)]
     pub fn print(str: &str) {
         unsafe { write(str.as_bytes(), 1) };
-        unsafe { write(&[b'\n'], 1) };
+        unsafe { write(b"\n", 1) };
     }
 }
 

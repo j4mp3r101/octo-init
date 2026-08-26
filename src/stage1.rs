@@ -1,9 +1,12 @@
+#![allow(clippy::manual_c_str_literals)]
+
 use crate::asm::debug::print;
 use crate::asm::prelude::*;
 
 use crate::asm::fs::{close, getdents64, mkdir, mount, openat};
-use crate::asm::symlinks::symlinkat;
 use crate::parser::RAW_BUF_SIZE_GET;
+
+use crate::better_proc_hand::create_entry;
 
 const GENERAL_DIR: &[u8; 15] = b"/etc/octo-init\0";
 
@@ -102,26 +105,6 @@ pub fn stage1() -> [[u8; 3]; 256] {
         let mut entry_i = 0;
 
         if dents > 0 {
-            let mut le_path = [0u8; 30];
-            let mut be_path = [0u8; 60];
-            let le_len = ENABLED_DIR.len();
-            let be_len = ENTRY_DIR.len();
-
-            for v in 0..le_len {
-                if ENABLED_DIR[v] == b'\0' {
-                    le_path[v] = b'/';
-                } else {
-                    le_path[v] = ENABLED_DIR[v]
-                }
-            }
-            for v in 0..be_len {
-                if ENTRY_DIR[v] == b'\0' {
-                    be_path[v] = b'/';
-                } else {
-                    be_path[v] = ENTRY_DIR[v];
-                }
-            }
-
             loop {
                 if i as isize >= dents {
                     break;
@@ -131,26 +114,11 @@ pub fn stage1() -> [[u8; 3]; 256] {
 
                 let word = &buffer[(i + 19)..(i + (d_reclen as usize))];
 
-                let name = [word[0], word[1], word[2], 0];
-
                 if !word.starts_with(b".") || !word.starts_with(b"..") {
-                    for i in 0..word.len() {
-                        be_path[i + be_len] = word[i];
-                    }
-                    be_path[word.len() + be_len] = 0;
+                    create_entry(word);
 
-                    ids[entry_i] = [name[0], name[1], name[2]];
+                    ids[entry_i] = [word[0], word[1], word[2]];
                     entry_i += 1;
-
-                    for i in 0..4 {
-                        le_path[i + le_len] = name[i];
-                    }
-
-                    let z = unsafe { symlinkat(be_path.as_ptr(), -100, le_path.as_ptr()) };
-
-                    if z < 0 {
-                        print("File found symlink not so much.");
-                    }
                 }
 
                 i += d_reclen as usize;

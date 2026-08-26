@@ -9,8 +9,6 @@ mod stage2;
 mod stage3;
 mod stage4;
 
-use core::panic::PanicInfo;
-
 use stage1::stage1;
 use stage2::stage2;
 use stage3::stage3;
@@ -33,13 +31,16 @@ pub extern "C" fn octo_main() -> ! {
 
     stage4(int);
 }
-
+#[cfg(not(test))]
+use core::panic::PanicInfo;
+#[cfg(not(test))]
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
     loop {}
 }
 
 //Due to compiler issues had to add this:
+#[allow(clippy::missing_safety_doc)]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn memcmp(s1: *const u8, s2: *const u8, n: usize) -> i32 {
     for i in 0..n {
@@ -51,7 +52,7 @@ pub unsafe extern "C" fn memcmp(s1: *const u8, s2: *const u8, n: usize) -> i32 {
     }
     0
 }
-
+#[allow(clippy::missing_safety_doc)]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn memset(s: *mut u8, c: i32, n: usize) -> *mut u8 {
     unsafe {
@@ -68,6 +69,7 @@ pub unsafe extern "C" fn memset(s: *mut u8, c: i32, n: usize) -> *mut u8 {
 }
 
 //this one also doesnt work
+#[allow(clippy::missing_safety_doc)]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn memcpy(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
     unsafe {
@@ -84,11 +86,12 @@ pub unsafe extern "C" fn memcpy(dest: *mut u8, src: *const u8, n: usize) -> *mut
 }
 
 //This things seems to not work
+#[allow(clippy::missing_safety_doc)]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn bcmp(s1: *const u8, s2: *const u8, n: usize) -> i32 {
     unsafe { memcmp(s1, s2, n) }
 }
-
+#[allow(clippy::missing_safety_doc)]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn strlen(s: *const i8) -> usize {
     let mut count = 0;

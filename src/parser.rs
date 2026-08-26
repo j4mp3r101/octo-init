@@ -54,7 +54,7 @@ const MAX_ARGS: usize = 64;
 const MAX_ENVS: usize = 64;
 
 #[inline(always)]
-pub fn pos_to_new_or_null<'a>(pos: usize, into: &'a mut [u8]) -> (&'a [u8], usize, bool) {
+pub fn pos_to_new_or_null(pos: usize, into: &mut [u8]) -> (&[u8], usize, bool) {
     let mut mvd = pos;
     let mut null = false;
 
@@ -122,7 +122,7 @@ pub fn get_entry_from_file(buffer: &mut [u8]) -> (u8, *const u8, [*const u8; 64]
             _ => {}
         }
 
-        if val_word.2 == true {
+        if val_word.2 {
             break 'z;
         }
 
@@ -148,7 +148,7 @@ pub fn i32_to_null_terminated_bytes(val: i32) -> [u8; 12] {
     let mut temp = [0u8; 11];
     let mut len = 0;
 
-    let mut n = val.abs() as u32;
+    let mut n = val.unsigned_abs();
 
     if n == 0 {
         temp[0] = b'0';

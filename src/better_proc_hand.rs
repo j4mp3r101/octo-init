@@ -13,21 +13,20 @@ use crate::stage1::{ENABLED_DIR, ENTRY_DIR};
 
 //Now i need to "morph"
 
-pub fn create_entry(word: &[u8; 4]) {
-    let mut join_buffer = [0u8; 30];
+pub fn create_entry(word: &[u8]) {
+    let mut join_buffer = [0u8; 60];
 
-    for i in 0..25 {
-        join_buffer[i] = ENTRY_DIR[i]
-    }
-    join_buffer[25] = b'/';
+    join_buffer[..23].copy_from_slice(&ENTRY_DIR[..23]);
 
-    join_buffer[26] = word[1];
-    join_buffer[27] = word[2];
-    join_buffer[28] = word[3];
+    join_buffer[23] = b'/';
+
+    join_buffer[24..].copy_from_slice(word);
 
     let fd = unsafe { openat(-100, ENABLED_DIR.as_ptr(), 0, 0) };
 
-    unsafe { symlinkat(join_buffer.as_ptr(), fd, word.as_ptr()) };
+    let name = [word[0], word[1], word[2], 0];
+
+    unsafe { symlinkat(join_buffer.as_ptr(), fd, name.as_ptr()) };
 
     unsafe { close(fd) };
 }

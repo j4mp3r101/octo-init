@@ -1,3 +1,5 @@
+#![allow(clippy::manual_c_str_literals)]
+
 use crate::asm::debug::print;
 use crate::asm::fs::{mount, sync, umount};
 use crate::asm::prelude::*;
