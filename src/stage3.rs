@@ -1,5 +1,5 @@
 use crate::asm::debug::*;
-use crate::better_proc_hand::beta::{alter_proc, kill_proc, read_proc, rephrase_entry};
+use crate::better_proc_hand::{MAX_TRIES, alter_proc, kill_proc, read_proc, rephrase_entry};
 
 use crate::asm::fs::{close, openat, read};
 
@@ -47,7 +47,7 @@ pub fn stage3() -> u64 {
         if signal > 0 {
             match signal {
                 17 => {
-                    let mut retries: u8 = 64;
+                    let mut retries: u8 = MAX_TRIES;
 
                     'ze: loop {
                         let pid = unsafe { wait4(-1, 1) };

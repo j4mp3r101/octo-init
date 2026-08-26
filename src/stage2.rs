@@ -5,7 +5,7 @@ use crate::parser::full_parse;
 
 use crate::parser::RAW_BUF_SIZE_READ;
 
-use crate::better_proc_hand::beta::{kill_proc, rephrase_entry, word_read_proc};
+use crate::better_proc_hand::{kill_proc, rephrase_entry, word_read_proc};
 
 pub fn stage2(ent: [[u8; 3]; 256]) {
     print("Entering stage 2!");
