@@ -1,8 +1,9 @@
 #![no_std]
 #![no_main]
 
-mod asm;
 mod better_proc_hand;
+mod new_asm;
+mod panic;
 mod parser;
 mod stage1;
 mod stage2;
@@ -21,6 +22,8 @@ pub extern "C" fn _start() -> ! {
     };
 }
 
+//The massive issue happened quite easily -> BAD ALLOCATION!!!!!
+
 #[unsafe(no_mangle)]
 pub extern "C" fn octo_main() -> ! {
     let ent = stage1();
@@ -31,12 +34,14 @@ pub extern "C" fn octo_main() -> ! {
 
     stage4(int);
 }
+
+//panic handler which reboots on panic.
 #[cfg(not(test))]
 use core::panic::PanicInfo;
 #[cfg(not(test))]
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
-    loop {}
+    panic::panic()
 }
 
 //Due to compiler issues had to add this:
@@ -68,16 +73,19 @@ pub unsafe extern "C" fn memset(s: *mut u8, c: i32, n: usize) -> *mut u8 {
     s
 }
 
-//this one also doesnt work
 #[allow(clippy::missing_safety_doc)]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn memcpy(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
+    let d = dest;
+    let s = src;
+    let count = n;
+
     unsafe {
         core::arch::asm!(
             "rep movsb",
-            inout("rdi") dest => _,
-            inout("rsi") src => _,
-            inout("rcx") n => _,
+            inout("rdi") d => _,
+            inout("rsi") s => _,
+            inout("rcx") count => _,
             options(nostack, preserves_flags)
         );
     }

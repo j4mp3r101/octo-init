@@ -1,12 +1,12 @@
 #![allow(clippy::manual_c_str_literals)]
 
-use crate::asm::debug::print;
-use crate::asm::fs::{mount, sync, umount};
-use crate::asm::prelude::*;
-use crate::asm::procs::kill;
-use crate::asm::procs::wait4;
-use crate::asm::signals::poweroff;
-use crate::asm::time::{Timespec, nanosleep};
+use crate::new_asm::debug::print;
+use crate::new_asm::fs::{mount, sync, umount};
+use crate::new_asm::prelude::*;
+use crate::new_asm::procs::kill;
+use crate::new_asm::procs::wait4;
+use crate::new_asm::signals::poweroff;
+use crate::new_asm::time::{Timespec, nanosleep};
 use crate::stage1::{SDEVTMPFS, SPROC, SPTS, SRUN, SSHM, SSYSFS, STMPFS};
 
 const LAZY_UMOUNT: isize = 0x02;

@@ -3,14 +3,25 @@ name = "octo-init"
 version = "0.1.0"
 edition = "2024"
 
-[dependencies]
-
 [profile.release]
-opt-level="z"
-strip=true
-lto="fat"
-codegen-units=1
-panic="abort"
+opt-level = "s"
+strip = true
+panic = "abort"
+lto = "fat"
+codegen-units = 1
 
-[profile.dev]
+[profile.minimal]
+inherits = "release"
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.fast]
+inherits = "release"
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = true
 panic = "abort"

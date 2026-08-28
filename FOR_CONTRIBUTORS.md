@@ -8,11 +8,11 @@ Octo-init should not rely on any external crates.
 The "heap" shall not be used for predictability and optimization purposes.
 
 3. Use existing architecture.
-Try to use the pre-made helper modules (such as parser.rs) before making your own.
+Try to use the pre-made helper modules (such as parser) before making your own.
 
 4. Try to make the changes as distant from the main code as possible.
 If you have to change code somewhere, its best to try to keep it in the helper modules rather than
-putting it into logic. (prevents hard-coding)
+putting it into main logic. (prevents hard-coding)
 
 5. Modularity matters.
 Always try to make your code as small and as efficient as possible. If its a big chunk 
@@ -20,11 +20,3 @@ its better to separate it into its own file.
 
 Thats all for now. the list might grow if needed.
 Thanks for contributing!
-
-There are some objectives which i set for myself but couldnt do in time, so, ill list them.
-
-FIX MEMCPY, MEMSET, BCMP IN MAIN.RS!
-
-making a new asm which works with arm and risc-v.
-expand the keywords.
-improve entries (So that they use slices rather than fixed-sizes)

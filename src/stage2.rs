@@ -1,11 +1,12 @@
-use crate::asm::debug::*;
-use crate::asm::procs::wait4;
+use crate::new_asm::debug::*;
 
-use crate::parser::full_parse;
+use crate::parser::parsy::parse;
+use crate::parser::resp_hand::{match_as_spawner, spawn};
 
 use crate::parser::RAW_BUF_SIZE_READ;
 
-use crate::better_proc_hand::{kill_proc, rephrase_entry, word_read_proc};
+use crate::better_proc_hand::word_read_proc;
+use crate::parser::i32::i32_to_null_terminated_bytes;
 
 pub fn stage2(ent: [[u8; 3]; 256]) {
     print("Entering stage 2!");
@@ -24,30 +25,16 @@ pub fn stage2(ent: [[u8; 3]; 256]) {
         let qz = word_read_proc(&word, &mut contents);
 
         if qz < 0 {
-            print("failed to read");
+            print("failed to read due to:");
+            unsafe { write(&i32_to_null_terminated_bytes(qz as i32), 1) };
+            print("");
             continue;
         }
 
-        let info = full_parse(&mut contents);
+        let entry = parse(&mut contents);
 
-        match info.1 {
-            1 => {
-                rephrase_entry(&word, info.0);
-            }
-            2 => unsafe {
-                wait4(info.0, 0);
-                kill_proc(info.0);
-            },
-            3 => {
-                rephrase_entry(&word, info.0);
+        let info = (spawn(entry), entry.r#type);
 
-                unsafe {
-                    wait4(info.0, 0);
-                };
-            }
-            _ => {
-                kill_proc(info.0);
-            }
-        };
+        match_as_spawner(info, &word);
     }
 }

@@ -1,9 +1,9 @@
 #![allow(clippy::manual_c_str_literals)]
 
-use crate::asm::debug::print;
-use crate::asm::prelude::*;
+use crate::new_asm::debug::print;
+use crate::new_asm::prelude::*;
 
-use crate::asm::fs::{close, getdents64, mkdir, mount, openat};
+use crate::new_asm::fs::{close, getdents64, mkdir, mount, openat};
 use crate::parser::RAW_BUF_SIZE_GET;
 
 use crate::better_proc_hand::create_entry;
@@ -115,9 +115,8 @@ pub fn stage1() -> [[u8; 3]; 256] {
                 let word = &buffer[(i + 19)..(i + (d_reclen as usize))];
 
                 if !word.starts_with(b".") || !word.starts_with(b"..") {
-                    create_entry(word);
-
-                    ids[entry_i] = [word[0], word[1], word[2]];
+                    let z = create_entry(word);
+                    ids[entry_i] = z;
                     entry_i += 1;
                 }
 
