@@ -10,9 +10,12 @@ pub enum SyscallID {
     Umount2 = 0xA6,
     Getdents64 = 0xD9,
     Openat = 0x101,
-    Unlinkat = 0x107,
     Renameat = 0x108,
+
+    //symlinks
     Symlinkat = 0x10A,
+    Unlinkat = 0x107,
+    Readlinkat = 0x10B,
 
     //debug
     Write = 0x01,
@@ -236,4 +239,8 @@ pub mod raw_syscalls {
     }
 }
 
-//now with that its time for the asm.
+//After that comes the SPECIFIC codes.
+
+pub const O_WRONLY_ID: usize = 1;
+pub const O_TRUNC_ID: usize = 512;
+pub const O_CREATE_ID: usize = 64;

@@ -2,10 +2,14 @@
 #[path = "archs/x86_64.rs"]
 mod x86_64;
 #[cfg(target_arch = "x86_64")]
-use x86_64::{SyscallID, raw_syscalls};
+use x86_64::{O_CREATE_ID, O_TRUNC_ID, O_WRONLY_ID, SyscallID, raw_syscalls};
 
 //Now functions
 pub mod prelude {
+    pub const O_TRUNC: usize = super::O_TRUNC_ID;
+    pub const O_WRITE: usize = super::O_WRONLY_ID;
+    pub const O_CREATE: usize = super::O_CREATE_ID;
+
     pub const VOID_PTR: *const u8 = core::ptr::null();
 }
 
@@ -74,6 +78,17 @@ pub mod fs {
 pub mod symlinks {
     use super::SyscallID;
     use super::raw_syscalls::*;
+
+    #[inline(always)]
+    pub unsafe fn readlinkat(dfd: i32, path: *const u8, buf: &mut [u8]) -> isize {
+        syscall4(
+            SyscallID::Readlinkat,
+            dfd as usize,
+            path as usize,
+            buf.as_mut_ptr() as usize,
+            buf.len(),
+        )
+    }
 
     #[inline(always)]
     pub unsafe fn unlinkat(dfd: i32, name: *const u8, flags: usize) -> isize {

@@ -87,7 +87,7 @@ pub fn stage1() -> [[u8; 3]; 256] {
         let fd = openat(
             -100,
             COMMUNICATION_FILE.as_ptr(),
-            1usize | 64usize | 512usize,
+            O_WRITE | O_CREATE | O_TRUNC,
             0o644,
         );
 

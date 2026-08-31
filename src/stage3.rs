@@ -1,4 +1,4 @@
-use crate::better_proc_hand::{MAX_TRIES, kill_proc, read_proc};
+use crate::better_proc_hand::{self, MAX_TRIES, kill_proc, read_proc};
 use crate::new_asm::debug::*;
 
 use crate::new_asm::fs::{close, openat, read};
@@ -22,7 +22,7 @@ const MASK_SIGCHLD: u64 = 1 << (17 - 1);
 
 const MASK_SPAWNPROC: u64 = 1 << (36 - 1);
 
-const BITMASK: u64 = MASK_POWEROFF | MASK_REBOOT | MASK_SIGTERM | MASK_SIGCHLD | MASK_SPAWNPROC;
+pub const BITMASK: u64 = MASK_POWEROFF | MASK_REBOOT | MASK_SIGTERM | MASK_SIGCHLD | MASK_SPAWNPROC;
 
 pub fn stage3() -> u64 {
     print("Entered stage 3");
@@ -87,8 +87,7 @@ pub fn stage3() -> u64 {
                     if read > 0 {
                         let word = [contents[0], contents[1], contents[2], 0];
 
-                        //Now after we got the name its easy.
-                        //Ill just handle it the same way stage2 does.
+                        better_proc_hand::word_read_proc(&word, &mut contents);
 
                         let res = parse(&mut contents);
 
